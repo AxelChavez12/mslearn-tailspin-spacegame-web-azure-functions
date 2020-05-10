@@ -59,7 +59,7 @@ stages:
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
-- stage: 'Deploy'
+      - stage: 'Deploy'
   displayName: 'Deploy the web application'
   dependsOn: Build
   jobs:
@@ -82,7 +82,6 @@ stages:
               appName: '$(WebAppName)'
               appType: webAppLinux
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/Tailspin.SpaceGame.Web.zip'
-
 - task: AzureFunctionApp@1
   displayName: 'Azure Function Deploy: leaderboard'
   inputs:
