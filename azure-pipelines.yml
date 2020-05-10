@@ -1,9 +1,3 @@
-trigger:
-- '*'
-
-variables:
-  buildConfiguration: 'Release'
-
 stages:
 - stage: 'Build'
   displayName: 'Build the web application'
@@ -40,16 +34,11 @@ stages:
       displayName: 'Write build info'
       workingDirectory: $(wwwrootDir)
 
-   - task: DotNetCoreCLI@2
-    displayName: dotnet restore
-    inputs:
-      command: restore
-      projects: |  
-     **/Project1.csproj
-     **/Project2.csproj
-     **/Project3.csproj
-      feedsToUse: config
-      nugetConfigPath: NuGet.config
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore project dependencies'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
 
     - task: DotNetCoreCLI@2
       displayName: 'Build the project - $(buildConfiguration)'
@@ -66,54 +55,6 @@ stages:
         publishWebProjects: false
         arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
         zipAfterPublish: true
+
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
-      
-- stage: 'Deploy'
-  displayName: 'Deploy the web application'
-  dependsOn: Build
-  jobs:
-  - deployment: Deploy
-    pool:
-      vmImage: 'ubuntu-16.04'
-    environment: spike
-    variables:
-    - group: Release
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: drop
-          - task: AzureWebApp@1
-            displayName: 'Azure App Service Deploy: website'
-            inputs:
-              azureSubscription: 'Resource Manager - Tailspin - Space Game'
-              appName: '$(WebAppName)'
-              appType: webAppLinux
-              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/Tailspin.SpaceGame.Web.zip'
-
-          - task: AzureFunctionApp@1
-            displayName: 'Azure Function Deploy: leaderboard'
-            inputs:
-              azureSubscription: 'Resource Manager - Tailspin - Space Game'
-              appType: functionAppLinux
-              appName: '$(LeaderboardAppName)'
-              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/Tailspin.SpaceGame.LeaderboardFunction.zip'
-              runtimeStack: DOCKER|microsoft/azure-functions-dotnet-core2.0:2.0
-              startUpCommand: 'func azure functionapp publish $(functionAppName) --no-bundler'
-
-              - task: AzureAppServiceSettings@1
-  displayName: 'Update web app settings'
-  inputs:
-    azureSubscription: 'Resource Manager - Tailspin - Space Game'
-    appName: $(WebAppName)
-    resourceGroupName: $(ResourceGroupName)
-    appSettings: |
-      [
-        {
-          "name": "AppSettings:LeaderboardFunctionUrl",
-          "value": "http://$(LeaderboardAppName).azurewebsites.net/api/LeaderboardFunction",
-          "slotSetting": false
-        }
-      ]
