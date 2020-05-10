@@ -40,7 +40,7 @@ stages:
       displayName: 'Write build info'
       workingDirectory: $(wwwrootDir)
 
-     task: DotNetCoreCLI@2
+   - task: DotNetCoreCLI@2
       displayName: 'Restore project dependencies'
       inputs:
         command: 'restore'
